@@ -1,42 +1,81 @@
 //---------------------------------------------------------------------------
-//	Plugins
+//  Plugins
 //---------------------------------------------------------------------------
 
-var gulp 		 = require("gulp"),
-	sass 		 = require("gulp-sass"),
-	concat 		 = require("gulp-concat"), //Concatena todos os arquivos em um só
-	watch 		 = require("gulp-watch"),
-	plumber 	 = require("gulp-plumber"), //Show Error on Console
-	minify_css   = require("gulp-minify-css"), //Minifica códigos Css
-	uglify 		 = require("gulp-uglify"),	//Minifica códigos Js
-	sourcemaps	 = require("gulp-sourcemaps"),
-	notify	 	 = require("gulp-notify"), //Dispara uma notifiação no S.O.
-	imagemin	 = require("gulp-imagemin"),
-	jshint	 	 = require("gulp-jshint"), //Analisa erros de codificação JavaScript
-	prefix 		 = require("gulp-autoprefixer"), //Adapta o código CSS para browsers antigos
-	ssi	 		 = require("gulp-html-ssi"),
-	pngquant	 = require("imagemin-pngquant"),
-	browserSync	 = require("browser-sync");
+var gulp                = require("gulp");
+var plugins             = require('gulp-load-plugins')();
+
+plugins.sass            = require("gulp-sass"),
+plugins.concat          = require("gulp-concat"),
+plugins.plumber         = require("gulp-plumber"),
+plugins.minify          = require("gulp-minify-css"),
+plugins.uglify          = require("gulp-uglify"),
+plugins.autoprefixer    = require("gulp-autoprefixer"),
+plugins.sourcemaps      = require("gulp-sourcemaps"),
+plugins.notify          = require("gulp-notify"),
+plugins.jshint          = require("gulp-jshint"),
+plugins.ssi             = require("gulp-html-ssi"),
+plugins.imagemin        = require("gulp-imagemin"),
+plugins.newer           = require("gulp-newer"),
+plugins.pngquant        = require("imagemin-pngquant"),
+plugins.browserSync     = require("browser-sync"),
+plugins.include         = require("gulp-include")
+
 
 //---------------------------------------------------------------------------
 // Settings
 //---------------------------------------------------------------------------
 
-var src = {
-	sass: "src/sass/**/*.scss",
-	js: "src/js/**/*.js",
-	img: "src/img/*",
-	html: "src/**/*.html"
-};
-
-var output = {
-	js: "output/js",
-	css: "output/css",
-	img: "output/img",
-	html: "output/**/*.html",
-	ssi: "output",
-	min_css: "app.min.css",
-	min_js: "app.min.js",
+var path = {
+    output: {
+        root                : "./output",
+        assets: {
+            root            : "./output/assets",
+            js              : "./output/assets/js",
+            css             : "./output/assets/css",
+            img             : "./output/assets/img",
+            font            : "./output/assets/font",
+            plugins: {
+                root        : "./output/assets/plugins",
+                jquery      : "./output/assets/plugins/jquery",
+                bootstrap: {
+                    css     : "./output/assets/plugins/bootstrap/css",
+                    js      : "./output/assets/plugins/bootstrap/js"
+                }
+            }
+        }
+    },
+    src: {
+        root                : "./src",
+        html                : "./src/**/*.html",
+        assets: {
+            root            : "./src/assets",
+            js              : "./src/assets/js/**/*.js",
+            sass            : "./src/assets/sass/**/*.scss",
+            img             : "./src/assets/img/**/*",
+            font            : "./src/assets/font/**/*"
+        }
+    },
+    plugins: {
+        jquery              : "./node_modules/jquery/dist/jquery.min.js",
+        bootstrap: {
+            all            : "./src/assets/plugins/bootstrap/*",
+            sass            : "./src/assets/plugins/bootstrap/bootstrap.scss",
+            js              : "./src/assets/plugins/bootstrap/bootstrap.js"
+        }
+    },
+    file: {
+        css                 : "app.css",
+        css_min             : "app.min.css",
+        js                  : "app.js",
+        js_min              : "app.min.js",
+        bootstrap:{
+            css             : "bootstrap.css",
+            css_min         : "bootstrap.min.css",
+            js              : "bootstrap.js",
+            js_min          : "bootstrap.min.js"
+        }
+    }
 };
 
 //---------------------------------------------------------------------------
@@ -44,95 +83,43 @@ var output = {
 //---------------------------------------------------------------------------
 
 var onError = function (err) {
-	console.log(err);
-	this.emit('end');
+    console.log(err);
+    this.emit('end');
 }
 
 //---------------------------------------------------------------------------
-// Task: Sass
+// Import Task File Js
 //---------------------------------------------------------------------------
 
-// SASS to CSS
-gulp.task('sass', function(){
-	return gulp.src(src.sass)
-		.pipe(plumber({
-			errorHandler: onError
-		}))
-		.pipe(sass())
-		.pipe(prefix('last 2 versions'))
-		.pipe(concat(output.min_css))
-		.pipe(gulp.dest(output.css))
-		.pipe(minify_css())
-		.pipe(sourcemaps.init())
-		.pipe(sourcemaps.write())
-		.pipe(gulp.dest(output.css))
-		.pipe(browserSync.reload({stream: true}));
-});
-
-//---------------------------------------------------------------------------
-// Task: Compile JS
-//---------------------------------------------------------------------------
-
-gulp.task('js', function() {
-  	return gulp.src(src.js)
-  		.pipe(plumber({
-			errorHandler: onError
-		}))
-		.pipe(jshint())
-		.pipe(jshint.reporter('default'))
-  		.pipe(uglify())
-  		.pipe(concat(output.min_js))
-  		.pipe(sourcemaps.init())
-  		.pipe(sourcemaps.write())
-  		.pipe(gulp.dest(output.js))
-  		.pipe(browserSync.reload({stream: true}));
-});
-
-//---------------------------------------------------------------------------
-// Task: Images
-//---------------------------------------------------------------------------
-
-gulp.task('img', function() {
-	return gulp.src(src.img)
-		.pipe(imagemin({
-			progressive: true,
-			svgoPlugins: [{removeViewBox: false}],
-			use: [pngquant()]
-		}))
-		.pipe(gulp.dest(output.img));
-});
-
-//---------------------------------------------------------------------------
-// Task: Html-SSI
-//---------------------------------------------------------------------------
-
-	gulp.task('ssi', function() {
-		gulp.src(src.html)
-        	.pipe(ssi())
-        	.pipe(gulp.dest(output.ssi))
-        	.pipe(browserSync.reload({stream: true}));
-	});
+gulp.task('sass'        , require('./gulp-tasks/task-sass')         (gulp, plugins, path, onError));
+gulp.task('js'          , require('./gulp-tasks/task-js')           (gulp, plugins, path, onError));
+gulp.task('img'         , require('./gulp-tasks/task-images')       (gulp, plugins, path, onError));
+gulp.task('ssi'         , require('./gulp-tasks/task-html-ssi')     (gulp, plugins, path, onError));
+gulp.task('jquery'      , require('./gulp-tasks/task-jquery')       (gulp, plugins, path, onError));
+gulp.task('bootstrap'   , require('./gulp-tasks/task-bootstrap')    (gulp, plugins, path, onError));
 
 //---------------------------------------------------------------------------
 // Task: Watch
 //---------------------------------------------------------------------------
 
 gulp.task('watch', function() {
-	browserSync.init({
-		server: './output'
-	});
-	gulp.watch(src.js, ['js']);
-	gulp.watch(src.sass, ['sass']);
-	gulp.watch(src.img, ['img']);
-	gulp.watch(src.html, ['ssi']);
-	gulp.watch(output.html).on('chang', browserSync.reload);
+    plugins.browserSync.init({
+        server: path.output.root
+    });
+    gulp.watch(path.src.assets.sass             , ['sass']);
+    gulp.watch(path.src.assets.js               , ['js']);
+    gulp.watch(path.src.assets.img              , ['img']);
+    gulp.watch(path.src.html                    , ['ssi']);
+    gulp.watch(path.plugins.bootstrap.all       , ['bootstrap']);
+
+    gulp.watch(path.output.html).on('chang', plugins.browserSync.reload);
 });
 
 //---------------------------------------------------------------------------
 // Task: Default
 //---------------------------------------------------------------------------
 
-gulp.task('default', ['watch', 'sass', 'js', 'img', 'ssi']);
+gulp.task('default', ['sass','js','img','ssi', 'jquery', 'bootstrap', 'watch']);
 
 //---------------------------------------------------------------------------
 // End
